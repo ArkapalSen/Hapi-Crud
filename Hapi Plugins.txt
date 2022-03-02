@@ -1,0 +1,2 @@
+Joi : it is used for payload validation
+Boom : it is used for advanced way of sending the response data and handles the diff error status code
