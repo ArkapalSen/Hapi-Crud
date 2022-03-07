@@ -40,7 +40,7 @@ const router = [
     }
   },
   {
-    path: '/user-read',
+    path: '/user-read/{id}',
     method : 'get',
     options:{
       handler : User.userRead,
@@ -48,8 +48,8 @@ const router = [
       notes : 'User Read',
       tags : ['api','user'],
       validate:{
-        query : Joi.object({
-          email : Joi.string().required(),
+        params : Joi.object({
+          id : Joi.number().integer().required(),
         })
       }
     }
@@ -85,7 +85,7 @@ const router = [
       tags : ['api','user'],
       validate:{
         payload : Joi.object({
-          email : Joi.string().required(),
+          id: Joi.number().integer().required()
         })
       }
     }

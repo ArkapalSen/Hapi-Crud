@@ -7,6 +7,7 @@ const Vision = require("@hapi/vision");
 const HapiSwagger = require("hapi-swagger");
 const Pack = require("./package");
 const baseRouter = require("./routes");
+const { jwtAuthentication } = require('./config/authenticate');
 
 
 const init = async () => {
@@ -16,6 +17,8 @@ const init = async () => {
     host: "localhost",
   });
 
+  await jwtAuthentication(server);
+
   const swaggerOptions = {
     documentationPath: "/documentation",
     basePath: "/api",
@@ -24,6 +27,15 @@ const init = async () => {
       version: Pack.version,
     },
     grouping: "tags",
+    securityDefinitions: {
+      jwt: {
+        type: "apiKey",
+        name: "Authorization",
+        in: "header",
+      },
+    },
+    security: [{ jwt: [] }],
+    schemes: ["http", "https"],
   };
 
   // Adding plugins for swagger docs;
@@ -34,8 +46,6 @@ const init = async () => {
       plugin: HapiSwagger,
       options: swaggerOptions,
     },
-    
-    
   ]);
 
   await server.register(baseRouter, {

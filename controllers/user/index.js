@@ -3,6 +3,7 @@ require("dotenv").config();
 const User = require("../../models").user;
 const bcrypt = require("bcrypt");
 const { success, error } = require("../../response/macros");
+const { Op } = require('sequelize');
 
 module.exports = {
   userCreation,
@@ -77,13 +78,13 @@ async function allUserRead(req, res) {
 }
 
 async function userRead(req, res) {
-  const rb = req.query;
+  const rb = req.params;
 
   let user = await User.findOne({
     where: {
-      email: rb.email,
+      id: rb.id,
     },
-    attributes: ["first_name", "last_name", "email", "mobile_no"],
+    attributes: ["id", "first_name", "last_name", "email", "mobile_no"],
   });
 
   if (user) {
@@ -95,36 +96,49 @@ async function userRead(req, res) {
 
 async function userUpdate(req, res) {
   try {
-    const rb = req.payload;
-
-    const { id, first_name, last_name, email, mobile_no } = rb;
+    const { id, first_name, last_name, email, mobile_no } = req.payload;
 
     let user = await User.findOne({
       where: {
         id,
       },
-      attributes: ["id"],
+      attributes: ["id", "email"],
     });
+
+    // console.log(user);
 
     if (!user) {
       return success({}, "This user does not exist")(res);
-    }
-
-    await User.update(
-      {
-        first_name,
-        last_name,
-        email,
-        mobile_no,
-      },
-      {
+    } else {
+      let email_check = await User.findOne({
         where: {
-          id,
+          email: email,
+          id: {
+            [Op.ne]: id,
+          },
         },
-      }
-    );
+        attributes: ["id"],
+      });
 
-    return success({}, "User updated successfully")(res);
+      if (email_check) {
+        return success({}, "This email already exists")(res);
+      }
+      await User.update(
+        {
+          first_name,
+          last_name,
+          email,
+          mobile_no,
+        },
+        {
+          where: {
+            id,
+          },
+        }
+      );
+
+      return success({}, "User updated successfully")(res);
+    }
   } catch (e) {
     console.log(e);
   }
@@ -136,7 +150,7 @@ async function userDelete(req, res) {
 
     let user = await User.findOne({
       where: {
-        email: rb.email,
+        id: rb.id,
       },
     });
 
@@ -146,7 +160,7 @@ async function userDelete(req, res) {
 
     await User.destroy({
       where: {
-        email: rb.email,
+        id: rb.id,
       },
     });
 
@@ -180,33 +194,33 @@ async function userLogin(req, res) {
 
       //jwt token
       token = jwt.sign({ id: rb.id }, process.env.SECRET_KEY, {
-        // expiresIn: "1h",
+        expiresIn: "1h",
       });
-      console.log(token);
+    
 
-      //updating token
-      await User.update(
-        {
-          tokens: token,
-        },
-        {
-          where: {
-            email: rb.email,
-          },
-        }
-      );
+      // //updating token
+      // await User.update(
+      //   {
+      //     tokens: token,
+      //   },
+      //   {
+      //     where: {
+      //       email: rb.email,
+      //     },
+      //   }
+      // );
 
-      //cookie
-      res.state("ApiCookie", token, {
-        ttl: new Date(Date.now() + 60000),
-        isSecure: true,
-        isHttpOnly: true,
-        encoding: "base64json",
-        clearInvalid: true,
-        strictHeader: true,
-      });
+      // //cookie
+      // res.state("ApiCookie", token, {
+      //   ttl: new Date(Date.now() + 60000),
+      //   isSecure: true,
+      //   isHttpOnly: true,
+      //   encoding: "base64json",
+      //   clearInvalid: true,
+      //   strictHeader: true,
+      // });
 
-      return success({ user }, "User Logged In successfully")(res);
+      return success({token ,  user }, "User Logged In successfully")(res);
     } else {
       return success({}, "Wrong Password")(res);
     }
